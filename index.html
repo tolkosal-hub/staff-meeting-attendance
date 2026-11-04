@@ -32,9 +32,15 @@
     .dropdown-item { padding: 10px 12px; cursor: pointer; text-align: left; font-size: 14px; border-bottom: 1px solid #f1f1f1; }
     .dropdown-item:hover { background-color: #e8f4fd; color: #185a9d; font-weight: bold; }
 
+    /* Nav Tab Styling (ដាក់នៅក្រោម Tab អវត្តមាន) */
+    .nav-tab-container { margin-bottom: 20px; }
+    .nav-tab { display: block; width: 100%; padding: 12px; text-align: center; background: #185a9d; color: #fff; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.3s; box-sizing: border-box; }
+    .nav-tab:hover { background: #124175; }
+
     .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
     .tab { flex: 1; padding: 12px; text-align: center; background: #e0e0e0; color: #333; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 14px; }
     .tab.active { background: #185a9d; color: white; }
+    
     button[type="button"] { width: 100%; padding: 14px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; font-family: 'Kantumruy Pro', sans-serif; }
     button:hover { background-color: #218838; }
     button:disabled { background-color: #999; cursor: not-allowed; }
@@ -57,8 +63,13 @@
 
     <div id="main-form-content">
       <div class="tabs">
-        <div class="tab active" id="tab-present" onclick="switchTab('present')">បានចូលរួមប្រជុំ</div>
-        <div class="tab" id="tab-absent" onclick="switchTab('absent')">មិនបានចូលរួមប្រជុំ</div>
+        <div class="tab active" id="tab-present" onclick="switchTab('present')">ចុះឈ្មោះវត្តមាន</div>
+        <div class="tab" id="tab-absent" onclick="switchTab('absent')">អវត្តមាន</div>
+      </div>
+
+      <!-- Nav Tab មើលរបាយការណ៍ ដាក់នៅក្រោម Tab អវត្តមាន -->
+      <div class="nav-tab-container">
+        <a href="dashboard.html" class="nav-tab">📊 មើលរបាយការណ៍វត្តមានប្រជុំ</a>
       </div>
 
       <form id="attendanceForm">
@@ -105,9 +116,9 @@
 
         <div id="absence-section">
           <div class="form-group">
-            <label>មូលហេតុមិនបានចូលរួមប្រជុំ (Absence):</label>
+            <label>មូលហេតុអវត្តមាន (Absence):</label>
             <select name="absence" id="absenceInput">
-              <option value="" disabled selected>-- សូមជ្រើសរើសមូលហេតុមិនបានចូលរួមប្រជុំ --</option>
+              <option value="" disabled selected>-- សូមជ្រើសរើសមូលហេតុអវត្តមាន --</option>
               <option value="បេសកកម្ម">បេសកកម្ម</option>
               <option value="សុំច្បាប់">សុំច្បាប់</option>
               <option value="មានបញ្ហាសុខភាព">មានបញ្ហាសុខភាព</option>
@@ -213,6 +224,18 @@
     let globalActiveCamera = null;
     let globalCaptured = false;
 
+    // មុខងារជួយបិទនិងលែងតំណភ្ជាប់កាមេរ៉ា (Free Camera Hardware Lock)
+    function stopCameraStream() {
+      if (globalVideoStream) {
+        globalVideoStream.getTracks().forEach(track => track.stop());
+        globalVideoStream = null;
+      }
+      if (globalActiveCamera) {
+        try { globalActiveCamera.stop(); } catch(e) {}
+        globalActiveCamera = null;
+      }
+    }
+
     async function processAttendance() {
       const statusDiv = document.getElementById('status');
       const attendanceStatus = document.getElementById('attendanceStatus').value;
@@ -232,7 +255,7 @@
       }
 
       if (attendanceStatus === 'មិនបានចូលរួមប្រជុំ' && !absenceInput) {
-         statusDiv.innerText = "សូមជ្រើសរើសមូលហេតុមិនបានចូលរួមប្រជុំ";
+         statusDiv.innerText = "សូមជ្រើសរើសមូលហេតុអវត្តមាន";
          statusDiv.style.color = "red"; return;
       }
 
@@ -245,12 +268,17 @@
         const instructionLabel = document.getElementById('blink-instruction');
 
         previewContainer.style.display = 'block';
-        statusDiv.innerText = "📸 សូមធ្មេចភ្នែក រួចបើកវិញ...";
+        statusDiv.innerText = "📸 កំពុងបើកកាមេរ៉ា... សូមធ្មេចភ្នែក រួចបើកវិញ";
         statusDiv.style.color = "#185a9d";
         globalCaptured = false;
 
+        // បិទ Camera ចាស់មុនបើកសាថ្មី (ការពារ NotReadableError บน Android)
+        stopCameraStream();
+
         try {
-          globalVideoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+          globalVideoStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } 
+          });
           videoElement.srcObject = globalVideoStream;
 
           const faceMesh = new FaceMesh({
@@ -281,13 +309,11 @@
               const rightEAR = calculateEAR(rightEye);
               const avgEAR = (leftEAR + rightEAR) / 2;
 
-              // កម្រិតចាប់សញ្ញាធ្មេចភ្នែក (EAR < 0.21)
               if (!hasBlinked && avgEAR < 0.21) {
                 hasBlinked = true;
                 instructionLabel.innerText = "✨ បានរកឃើញការធ្មេចភ្នែក! ឥឡូវសូមបើកភ្នែកឡើងវិញ...";
               }
 
-              // បន្ទាប់ពីធ្មេចហើយ រួចបើកភ្នែកឡើងវិញ (EAR > 0.23) ថតស្វ័យប្រវត្តិភ្លាម
               if (hasBlinked && avgEAR > 0.23) {
                 globalCaptured = true;
                 instructionLabel.innerText = "📸 កំពុងថតរូបដោយស្វ័យប្រវត្តិ...";
@@ -311,9 +337,9 @@
           globalActiveCamera.start();
 
         } catch (err) {
-          if (globalVideoStream) globalVideoStream.getTracks().forEach(track => track.stop());
+          stopCameraStream();
           previewContainer.style.display = 'none';
-          statusDiv.innerText = "បរាជ័យ៖ សូមអនុញ្ញាត (Allow) សិទ្ធិកាមេរ៉ា (Camera) នៅលើ Browser!";
+          statusDiv.innerText = "បរាជ័យ៖ កាមេរ៉ាជាប់សោរ ឬមិនមានសិទ្ធិ (Not Readable)! សូមបិទ Tab ផ្សេងៗ ឬ Restart Browser រួចសាកល្បងម្ដងទៀត។";
           statusDiv.style.color = "red";
           submitBtn.disabled = false;
         }
@@ -378,14 +404,12 @@
         
         const photoBase64 = canvasElement.toDataURL('image/jpeg', 0.7);
         
-        if (globalVideoStream) {
-          globalVideoStream.getTracks().forEach(track => track.stop());
-        }
+        // លែងសិទ្ធិកាមេរ៉ាទាន់ពេល
+        stopCameraStream();
         previewContainer.style.display = 'none';
 
         const base64Data = photoBase64.split(',')[1];
 
-        // ដាក់ឈ្មោះ File តាមទម្រង់ selfie_user name_date and time.jpg
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -408,6 +432,7 @@
         }, submitBtn, statusDiv);
 
       } catch (err) {
+        stopCameraStream();
         previewContainer.style.display = 'none';
         statusDiv.innerText = "បរាជ័យក្នុងការថតរូប៖ សូមព្យាយាមម្ដងទៀត!";
         statusDiv.style.color = "red";
