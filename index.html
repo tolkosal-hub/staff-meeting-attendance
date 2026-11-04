@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meeting Attendance</title>
-  <!-- โหลด MediaPipe Face Mesh សម្រាប់ចាប់សញ្ញាភ្នែក -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
@@ -42,7 +41,6 @@
     #status { margin-top: 15px; font-weight: bold; font-size: 15px; }
     #absence-section { display: none; }
     
-    /* Live Preview Camera Box & Blink Prompt */
     .camera-preview-container { display: none; margin-bottom: 15px; text-align: center; background: #fff3cd; padding: 12px; border-radius: 8px; border: 2px dashed #ffc107; }
     .camera-preview-container label { display: block; font-weight: bold; color: #856404; margin-bottom: 8px; font-size: 15px; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
@@ -98,9 +96,9 @@
           </select>
         </div>
 
-        <!-- Camera Preview Box ជាមួយសារតម្រូវឱ្យធ្មេចភ្នែក -->
+        <!-- Camera Preview Box -->
         <div class="camera-preview-container" id="camera-preview-section">
-          <label id="blink-instruction">📸 សូមធ្មេចភ្នែករបស់អ្នក</label>
+          <label id="blink-instruction">📸 សូមធ្មេចភ្នែក រួចបើកវិញធម្មតា...</label>
           <video id="cameraFeed" playsinline autoplay muted></video>
           <canvas id="photoCanvas"></canvas>
         </div>
@@ -204,14 +202,16 @@
       }
     }
 
-    // គណនាកម្រិតបើក/ធ្មេចភ្នែក (Eye Aspect Ratio - EAR)
     function calculateEAR(eye) {
-      // eye คือ array ของ landmark 6 จุดรอบดวงตา
       const vertical1 = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
       const vertical2 = Math.hypot(eye[2].x - eye[4].x, eye[2].y - eye[4].y);
       const horizontal = Math.hypot(eye[0].x - eye[3].x, eye[0].y - eye[3].y);
       return (vertical1 + vertical2) / (2.0 * horizontal);
     }
+
+    let globalVideoStream = null;
+    let globalActiveCamera = null;
+    let globalCaptured = false;
 
     async function processAttendance() {
       const statusDiv = document.getElementById('status');
@@ -242,19 +242,17 @@
       if (attendanceStatus === 'បានចូលរួមប្រជុំ') {
         const previewContainer = document.getElementById('camera-preview-section');
         const videoElement = document.getElementById('cameraFeed');
-        const canvasElement = document.getElementById('photoCanvas');
         const instructionLabel = document.getElementById('blink-instruction');
 
         previewContainer.style.display = 'block';
-        statusDiv.innerText = "កំពុងបើកកាមេរ៉ា... សូមមើលចំកាមេរ៉ា";
+        statusDiv.innerText = "📸 សូមធ្មេចភ្នែក រួចបើកវិញ...";
         statusDiv.style.color = "#185a9d";
+        globalCaptured = false;
 
-        let videoStream = null;
         try {
-          videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-          videoElement.srcObject = videoStream;
+          globalVideoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+          videoElement.srcObject = globalVideoStream;
 
-          // ដំណើរការ MediaPipe FaceMesh ដើម្បីចាប់សញ្ញាភ្នែកធ្មេច
           const faceMesh = new FaceMesh({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
           });
@@ -266,15 +264,13 @@
             minTrackingConfidence: 0.5
           });
 
-          let blinked = false;
+          let hasBlinked = false; 
 
           faceMesh.onResults((results) => {
-            if (blinked) return;
+            if (globalCaptured) return;
 
             if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
               const landmarks = results.multiFaceLandmarks[0];
-              
-              // ညွှន្រ្ដសន្ទស្សន៍ភ្នែកឆ្វេង និងស្តាំ (Left & Right Eye landmarks)
               const leftEyeIndices = [33, 160, 158, 133, 153, 144];
               const rightEyeIndices = [362, 385, 387, 263, 373, 380];
 
@@ -285,57 +281,37 @@
               const rightEAR = calculateEAR(rightEye);
               const avgEAR = (leftEAR + rightEAR) / 2;
 
-              // បើ EAR ទាបជាង 0.2 គឺចាត់ទុកថាធ្មេចភ្នែក (Blink detected)
-              if (avgEAR < 0.20) {
-                blinked = true;
-                instructionLabel.innerText = "✨ បានរកឃើញការធ្មេចភ្នែក! កំពុងរក្សាទុករូបថត...";
+              // កម្រិតចាប់សញ្ញាធ្មេចភ្នែក (EAR < 0.21)
+              if (!hasBlinked && avgEAR < 0.21) {
+                hasBlinked = true;
+                instructionLabel.innerText = "✨ បានរកឃើញការធ្មេចភ្នែក! ឥឡូវសូមបើកភ្នែកឡើងវិញ...";
+              }
+
+              // បន្ទាប់ពីធ្មេចហើយ រួចបើកភ្នែកឡើងវិញ (EAR > 0.23) ថតស្វ័យប្រវត្តិភ្លាម
+              if (hasBlinked && avgEAR > 0.23) {
+                globalCaptured = true;
+                instructionLabel.innerText = "📸 កំពុងថតរូបដោយស្វ័យប្រវត្តិ...";
                 
-                // ថតរូប Selfie ពេលធ្មេចភ្នែកចំគោលដៅ
                 setTimeout(() => {
-                  const context = canvasElement.getContext('2d');
-                  canvasElement.width = videoElement.videoWidth || 480;
-                  canvasElement.height = videoElement.videoHeight || 640;
-                  context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-                  
-                  const photoBase64 = canvasElement.toDataURL('image/jpeg', 0.7);
-                  
-                  // បិទកាមេរ៉ា និងលាក់ Preview
-                  videoStream.getTracks().forEach(track => track.stop());
-                  previewContainer.style.display = 'none';
-
-                  const base64Data = photoBase64.split(',')[1];
-                  const fileName = `Selfie_${staffName}_${Date.now()}.jpg`;
-
-                  sendDataToBackend({
-                    staffName: staffName,
-                    role: role,
-                    building: building,
-                    attendanceStatus: attendanceStatus,
-                    absence: "",
-                    fileName: fileName,
-                    fileData: base64Data,
-                    mimeType: 'image/jpeg'
-                  }, submitBtn, statusDiv);
-
-                }, 500);
+                  executeCaptureAndSend();
+                }, 300);
               }
             }
           });
 
-          // ส่งเฟรมวิดีโอเข้า FaceMesh ตรวจจับแบบ Real-time
-          const camera = new Camera(videoElement, {
+          globalActiveCamera = new Camera(videoElement, {
             onFrame: async () => {
-              if (!blinked) {
+              if (!globalCaptured) {
                 await faceMesh.send({ image: videoElement });
               }
             },
             width: 480,
             height: 640
           });
-          camera.start();
+          globalActiveCamera.start();
 
         } catch (err) {
-          if (videoStream) videoStream.getTracks().forEach(track => track.stop());
+          if (globalVideoStream) globalVideoStream.getTracks().forEach(track => track.stop());
           previewContainer.style.display = 'none';
           statusDiv.innerText = "បរាជ័យ៖ សូមអនុញ្ញាត (Allow) សិទ្ធិកាមេរ៉ា (Camera) នៅលើ Browser!";
           statusDiv.style.color = "red";
@@ -379,6 +355,66 @@
       }
     }
 
+    function executeCaptureAndSend() {
+      if (globalCaptured && arguments.callee.done) return;
+      arguments.callee.done = true;
+
+      const videoElement = document.getElementById('cameraFeed');
+      const canvasElement = document.getElementById('photoCanvas');
+      const previewContainer = document.getElementById('camera-preview-section');
+      const statusDiv = document.getElementById('status');
+      const submitBtn = document.getElementById('submitBtn');
+      
+      const staffName = document.getElementById('staffNameInput').value.trim();
+      const role = document.getElementById('roleInput').value;
+      const building = document.getElementById('buildingInput').value;
+      const attendanceStatus = document.getElementById('attendanceStatus').value;
+
+      try {
+        const context = canvasElement.getContext('2d');
+        canvasElement.width = videoElement.videoWidth || 480;
+        canvasElement.height = videoElement.videoHeight || 640;
+        context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+        
+        const photoBase64 = canvasElement.toDataURL('image/jpeg', 0.7);
+        
+        if (globalVideoStream) {
+          globalVideoStream.getTracks().forEach(track => track.stop());
+        }
+        previewContainer.style.display = 'none';
+
+        const base64Data = photoBase64.split(',')[1];
+
+        // ដាក់ឈ្មោះ File តាមទម្រង់ selfie_user name_date and time.jpg
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        const fileName = `selfie_${staffName}_${year}-${month}-${day}_${hours}-${minutes}-${seconds}.jpg`;
+
+        sendDataToBackend({
+          staffName: staffName,
+          role: role,
+          building: building,
+          attendanceStatus: attendanceStatus,
+          absence: "",
+          fileName: fileName,
+          fileData: base64Data,
+          mimeType: 'image/jpeg'
+        }, submitBtn, statusDiv);
+
+      } catch (err) {
+        previewContainer.style.display = 'none';
+        statusDiv.innerText = "បរាជ័យក្នុងការថតរូប៖ សូមព្យាយាមម្ដងទៀត!";
+        statusDiv.style.color = "red";
+        submitBtn.disabled = false;
+      }
+    }
+
     function sendDataToBackend(data, submitBtn, statusDiv) {
       statusDiv.innerText = "កំពុងបញ្ជូនទិន្នន័យចូលប្រព័ន្ធ... (Sending)";
 
@@ -399,6 +435,7 @@
           submitBtn.disabled = false;
           submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន";
           statusDiv.innerText = "";
+          window.location.reload(); 
         }, 2000);
       })
       .catch((error) => {
