@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard វត្តមានប្រជុំប្រចាំខែ</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600&display=swap');
+    body {
+      margin: 0; font-family: 'Kantumruy Pro', sans-serif; background: #f4f7f6; padding: 20px; color: #333;
+    }
+    .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    h2 { color: #185a9d; text-align: center; margin-bottom: 5px; }
+    h4 { text-align: center; color: #d35400; margin-top: 0; margin-bottom: 25px; }
+    
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+    .card { background: #e8f4fd; padding: 20px; border-radius: 10px; text-align: center; border-left: 5px solid #185a9d; }
+    .card.green { background: #e1f5fe; border-left-color: #28a745; }
+    .card.red { background: #ffebee; border-left-color: #dc3545; }
+    .card h3 { margin: 0; font-size: 28px; color: #185a9d; }
+    .card.green h3 { color: #28a745; }
+    .card.red h3 { color: #dc3545; }
+    .card p { margin: 5px 0 0; font-weight: bold; color: #555; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: center; font-size: 14px; }
+    th { background-color: #185a9d; color: white; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .status-present { color: #28a745; font-weight: bold; }
+    .status-absent { color: #dc3545; font-weight: bold; }
+    .status-none { color: #888; }
+    
+    .loading { text-align: center; font-size: 18px; color: #185a9d; padding: 40px; }
+    .btn-back { display: inline-block; margin-bottom: 20px; padding: 8px 15px; background: #6c757d; color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; }
+    .btn-back:hover { background: #5a6268; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <a href="index.html" class="btn-back">← ត្រឡប់ទៅទំព័រចុះឈ្មោះ</a>
+    <h2>ផ្នែកសល្យសាស្ត្រ មន្ទីរពេទ្យបង្អែកខេត្តបាត់ដំបង</h2>
+    <h4>📊 របាយការណ៍វត្តមានប្រជុំប្រចាំខែ <span id="month-title"></span></h4>
+
+    <div id="loading" class="loading">កំពុងទាញយកទិន្នន័យ... សូមរង់ចាំ (Loading)</div>
+
+    <div id="dashboard-content" style="display: none;">
+      <div class="cards">
+        <div class="card">
+          <h3 id="total-staff">0</h3>
+          <p>បុគ្គលិកសរុប</p>
+        </div>
+        <div class="card green">
+          <h3 id="present-staff">0</h3>
+          <p>បានចូលរួម (✔️)</p>
+        </div>
+        <div class="card red">
+          <h3 id="absent-staff">0</h3>
+          <p>អវត្តមាន (❌)</p>
+        </div>
+        <div class="card" style="border-left-color: #ffc107; background: #fff9c4;">
+          <h3 id="notyet-staff">0</h3>
+          <p>មិនទាន់ស្កេន</p>
+        </div>
+      </div>
+
+      <h3 style="color: #185a9d; border-bottom: 2px solid #185a9d; padding-bottom: 8px;">បញ្ជីឈ្មោះ និងស្ថានភាពវត្តមានបុគ្គលិក</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ល.រ</th>
+            <th>ឈ្មោះជាភាសាខ្មែរ</th>
+            <th>តួនាទី</th>
+            <th>អគារ</th>
+            <th>ស្ថានភាពវត្តមាន</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <!-- Data will load here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // ដាក់ Link Apps Script Web App របស់អ្នកនៅទីនេះ 👇
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXTUtNvZzY9r7KGOLLzQD4BJkOKHgLpdpa0wabOeClAdpb7Iqh1jptt383Hq5XTtI/exec";
+
+    fetch(APPS_SCRIPT_URL)
+      .then(response => response.json())
+      .then(result => {
+        document.getElementById('loading').style.display = 'none';
+        if (result.success) {
+          document.getElementById('dashboard-content').style.display = 'block';
+          const data = result.data;
+
+          document.getElementById('month-title').innerText = data.month;
+          document.getElementById('total-staff').innerText = data.totalStaff;
+          document.getElementById('present-staff').innerText = data.presentCount;
+          document.getElementById('absent-staff').innerText = data.absentCount;
+          document.getElementById('notyet-staff').innerText = data.notYetCount;
+
+          const tbody = document.getElementById('table-body');
+          tbody.innerHTML = "";
+
+          data.list.forEach((item, index) => {
+            let statusClass = "status-none";
+            if (item.status.includes("✔️")) statusClass = "status-present";
+            else if (item.status.includes("❌")) statusClass = "status-absent";
+
+            let tr = `<tr>
+              <td>${index + 1}</td>
+              <td style="text-align: left; font-weight: bold;">${item.name}</td>
+              <td>${item.role}</td>
+              <td>${item.building}</td>
+              <td class="${statusClass}">${item.status}</td>
+            </tr>`;
+            tbody.innerHTML += tr;
+          });
+        } else {
+          alert("បរាជ័យក្នុងការទាញយកទិន្នន័យ៖ " + result.message);
+        }
+      })
+      .catch(error => {
+        document.getElementById('loading').innerText = "មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ!";
+        console.error(error);
+      });
+  </script>
+</body>
+</html>
