@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meeting Attendance</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600&display=swap');
+    body {
+      margin: 0; font-family: 'Kantumruy Pro', sans-serif;
+      background: linear-gradient(-45deg, #185a9d, #43cea2, #23a6d5, #23d5ab);
+      background-size: 400% 400%; animation: gradientBG 15s ease infinite;
+      min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px;
+    }
+    @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    .form-container { background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-width: 500px; width: 100%; text-align: center; }
+    h2 { color: #185a9d; margin-bottom: 5px; font-size: 22px; line-height: 1.5; }
+    h3 { color: #d35400; margin-top: 0; margin-bottom: 25px; font-size: 18px; }
+    .form-group { text-align: left; margin-bottom: 15px; position: relative; }
+    .form-group label { display: block; margin-bottom: 5px; color: #333; font-weight: bold; font-size: 14px; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif; font-size: 14px; background: #fff; }
+    input:focus, select:focus { outline: none; border-color: #185a9d; box-shadow: 0 0 5px rgba(24, 90, 157, 0.5); }
+    
+    .dropdown-list {
+      position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto;
+      background: #fff; border: 1px solid #ccc; border-radius: 0 0 8px 8px; z-index: 1000; display: none;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .dropdown-item { padding: 10px 12px; cursor: pointer; text-align: left; font-size: 14px; border-bottom: 1px solid #f1f1f1; }
+    .dropdown-item:hover { background-color: #e8f4fd; color: #185a9d; font-weight: bold; }
+
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .tab { flex: 1; padding: 12px; text-align: center; background: #e0e0e0; color: #333; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 14px; }
+    .tab.active { background: #185a9d; color: white; }
+    button[type="button"] { width: 100%; padding: 14px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; font-family: 'Kantumruy Pro', sans-serif; }
+    button:hover { background-color: #218838; }
+    button:disabled { background-color: #999; cursor: not-allowed; }
+    #status { margin-top: 15px; font-weight: bold; font-size: 15px; }
+    #absence-section { display: none; }
+    
+    .camera-note { background: #e8f4fd; color: #185a9d; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; font-weight: bold; }
+    
+    /* លាក់កាមេរ៉ាទុកដំណើរការផ្ទៃខាងក្រោយ */
+    #cameraFeed { position: absolute; left: -9999px; opacity: 0.01; }
+    #photoCanvas { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="form-container">
+    <h2>ផ្នែកសល្យសាស្ត្រ មន្ទីរពេទ្យបង្អែកខេត្តបាត់ដំបង</h2>
+    <h3>វត្តមានប្រជុំប្រចាំខែ <span id="current-month-year"></span></h3>
+
+    <div id="main-form-content">
+      <div class="tabs">
+        <div class="tab active" id="tab-present" onclick="switchTab('present')">បានចូលរួមប្រជុំ</div>
+        <div class="tab" id="tab-absent" onclick="switchTab('absent')">មិនបានចូលរួមប្រជុំ</div>
+      </div>
+
+      <form id="attendanceForm">
+        <input type="hidden" name="attendanceStatus" id="attendanceStatus" value="បានចូលរួមប្រជុំ">
+
+        <div class="form-group">
+          <label>ឈ្មោះជាភាសាខ្មែរ (Name):</label>
+          <input type="text" id="staffNameInput" placeholder="🔍 វាយបញ្ចូល ឬស្វែងរកឈ្មោះរបស់អ្នក..." autocomplete="off" oninput="filterNames()" onclick="showDropdown()" required>
+          <div id="dropdownList" class="dropdown-list"></div>
+        </div>
+
+        <div class="form-group">
+          <label>តួនាទី (Role):</label>
+          <select name="role" required id="roleInput">
+            <option value="" disabled selected>ជ្រើសរើសតួនាទី...</option>
+            <option value="ប្រធានផ្នែក">ប្រធានផ្នែក</option>
+            <option value="អនុប្រធានផ្នែក">អនុប្រធានផ្នែក</option>
+            <option value="គ្រូពេទ្យ">គ្រូពេទ្យ</option>
+            <option value="នាយអគារ">នាយអគារ</option>
+            <option value="នាយអគាររង">នាយអគាររង</option>
+            <option value="មន្ត្រី">មន្ត្រី</option>
+            <option value="បុគ្គលិកកិច្ចសន្យា">បុគ្គលិកកិច្ចសន្យា</option>
+            <option value="បុគ្គលិកជំនួយការ">បុគ្គលិកជំនួយការ</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>អគារ (Building):</label>
+          <select name="building" required id="buildingInput">
+            <option value="" disabled selected>ជ្រើសរើសអគារ...</option>
+            <option value="សល្យសាស្ត្រ">សល្យសាស្ត្រ</option>
+            <option value="សល្យាគារ">សល្យាគារ</option>
+            <option value="ប្រពោធនកម្មនិងសណ្ដំ">ប្រពោធនកម្មនិងសណ្ដំ</option>
+            <option value="វះកាត់តូច">វះកាត់តូច</option>
+          </select>
+        </div>
+
+        <div class="camera-note" id="camera-note">📸 ពេលចុចបញ្ជូន ប្រព័ន្ធនឹងបើកកាមេរ៉ាមុខថតរូប Selfie ផ្ទាល់ដោយស្វ័យប្រវត្តិ។</div>
+        <video id="cameraFeed" playsinline autoplay muted></video>
+        <canvas id="photoCanvas"></canvas>
+
+        <div id="absence-section">
+          <div class="form-group">
+            <label>មូលហេតុមិនបានចូលរួមប្រជុំ (Absence):</label>
+            <select name="absence" id="absenceInput">
+              <option value="" disabled selected>-- សូមជ្រើសរើសមូលហេតុមិនបានចូលរួមប្រជុំ --</option>
+              <option value="បេសកកម្ម">បេសកកម្ម</option>
+              <option value="សុំច្បាប់">សុំច្បាប់</option>
+              <option value="មានបញ្ហាសុខភាព">មានបញ្ហាសុខភាព</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>សូមបញ្ចូលរូបភាព លិខិតបេសកកម្ម ឬពាក្យសុំច្បាប់ (បើមាន):</label>
+            <input type="file" id="attachmentFile" accept="image/*,application/pdf">
+          </div>
+        </div>
+
+        <button type="button" id="submitBtn" onclick="processAttendance()">បញ្ជូនទិន្នន័យវត្តមាន</button>
+        <div id="status"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXTUtNvZzY9r7KGOLLzQD4BJkOKHgLpdpa0wabOeClAdpb7Iqh1jptt383Hq5XTtI/exec";
+
+    // បញ្ជីឈ្មោះដែលបានកែសម្រួលអក្ខរាវិរុទ្ធរួចរាល់
+    const staffList = [
+      "ហួត សុជាតិ", "ហួត សុគុណ", "លីម សារ៉ាន់ឌី", "តុល កុសល", "ស៊ា សុគន្ធ", "ស៊ុម រដ្ឋា", 
+      "សួន សុវណ្ណារ៉ា", "ខ្លូត វណ្ណវិច្ឆ័យ", "ទន់ វឌ្ឍនៈ", "ញ៉ែម សមបញ្ញា", "ភិន សុភី", "វ៉ុន វ៉ាន់នី", 
+      "ហាស់ ស៊ីផាន់", "អ៊ាន ម៉ារ៉ាឌី", "ម៉ៅ តារា", "សារ៉ង សារៈសិន្ធុ", "យ៉ម ផល្លា", "ស៊ិច ពិសី", 
+      "អុន សម្ភស្សសោភា", "ពេជ្រ ភីរម្យ", "ផាវ ផល", "វឿន គង់", "ហាន ផារី", "ឃឹម ប៊ុណ្ណា", 
+      "ហ៊ាន ពីណា", "អេង សូនី", "លេន បូនី", "សែត ហត្ថា", "និន ចំរើន", "កែ កិណិរី", 
+      "ពៅ សុខណា", "ប៉ែន វ៉ាន់ដា", "កៅ សាវុទ្ធី", "ធី សុធារៈ", "ឯម បូរ៉ា", "ខុង សាវ៉ាន់", 
+      "ស៊ុម ចំរើន", "ឃិន ទុំ", "មួង រដ្ឋ", "គិន គីណារិន", "រី សាលឿន", "ផាវ ភី", 
+      "ម៉ម ផុសណាគ្រី", "តឹក ប៊ុនឡុង", "ស៊ីថាន", "សូ វិបុល", "ឈួម ស៊ិន", "សល់ ចាន់ចាវ", 
+      "អាង ចន្ទបរមី", "ហៃ សាវ៉ាន់", "លាប ចិត្រា", "តេង ច័ន្ទតារា", "គុជ រចនា", "អ៊ាន សុភក្តិ", 
+      "ខៅ ស្រីនុច", "សុគន្ធ រ៉ូហ្សា", "ផន ឡៃហ៊ាង", "ស៊ី ស៊ីវអ៊ី", "រ៉េត គឹមឡាង", "អ៊ឹម អ៊ីវន", 
+      "ខុន ពុទ្ធិ", "ធំ តុលាការ", "ជួន ពិសិដ្ឋ", "យស រតនា", "ឌី ម៉ូនីន", "រ៉យ ឡាយ", 
+      "អ៊ុក សារ៉ាវី", "សាន ធីណាន", "គុជ សោភា", "វ៉ិត ឆវី", "ប៉េង ហង្សដានេត"
+    ];
+
+    const khmerMonths = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"];
+    const today = new Date();
+    const currentMonth = khmerMonths[today.getMonth()];
+    const currentYear = today.getFullYear();
+
+    const khmerDigits = {'0':'០','1':'១','2':'២','3':'៣','4':'៤','5':'៥','6':'៦','7':'៧','8':'៨','9':'៩'};
+    document.getElementById("current-month-year").innerText = `${currentMonth} ឆ្នាំ ${currentYear.toString().split('').map(d => khmerDigits[d] || d).join('')}`;
+
+    function showDropdown() {
+      renderDropdown(staffList);
+      document.getElementById('dropdownList').style.display = 'block';
+    }
+
+    function filterNames() {
+      const keyword = document.getElementById('staffNameInput').value.toLowerCase();
+      const filtered = staffList.filter(name => name.toLowerCase().includes(keyword));
+      renderDropdown(filtered);
+      document.getElementById('dropdownList').style.display = 'block';
+    }
+
+    function renderDropdown(items) {
+      const listDiv = document.getElementById('dropdownList');
+      listDiv.innerHTML = '';
+      if (items.length === 0) {
+        listDiv.innerHTML = '<div class="dropdown-item" style="color: #999;">រកមិនឃើញឈ្មោះ</div>';
+        return;
+      }
+      items.forEach(name => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.innerText = name;
+        item.onclick = function() {
+          document.getElementById('staffNameInput').value = name;
+          listDiv.style.display = 'none';
+        };
+        listDiv.appendChild(item);
+      });
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.form-group')) {
+        document.getElementById('dropdownList').style.display = 'none';
+      }
+    });
+
+    function switchTab(tab) {
+      document.getElementById('tab-present').classList.toggle('active', tab === 'present');
+      document.getElementById('tab-absent').classList.toggle('active', tab === 'absent');
+      document.getElementById('absence-section').style.display = (tab === 'absent') ? 'block' : 'none';
+      document.getElementById('camera-note').style.display = (tab === 'present') ? 'block' : 'none';
+      document.getElementById('attendanceStatus').value = (tab === 'present') ? 'បានចូលរួមប្រជុំ' : 'មិនបានចូលរួមប្រជុំ';
+      
+      const btn = document.getElementById('submitBtn');
+      if (tab === 'present') {
+        btn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន";
+      } else {
+        btn.innerText = "បញ្ជូនទិន្នន័យអវត្តមាន";
+      }
+    }
+
+    async function processAttendance() {
+      const form = document.getElementById('attendanceForm');
+      const statusDiv = document.getElementById('status');
+      const attendanceStatus = document.getElementById('attendanceStatus').value;
+      const staffName = document.getElementById('staffNameInput').value.trim();
+      const role = document.getElementById('roleInput').value;
+      const building = document.getElementById('buildingInput').value;
+      const absenceInput = document.getElementById('absenceInput').value;
+
+      if (!staffName || !role || !building) {
+         statusDiv.innerText = "សូមបំពេញព័ត៌មាន (ឈ្មោះ តួនាទី អគារ) ឱ្យបានគ្រប់គ្រាន់សិន!";
+         statusDiv.style.color = "red"; return;
+      }
+
+      if (!staffList.includes(staffName)) {
+         statusDiv.innerText = "សូមជ្រើសរើសឈ្មោះដែលមានក្នុងបញ្ជីឱ្យបានត្រឹមត្រូវ!";
+         statusDiv.style.color = "red"; return;
+      }
+
+      if (attendanceStatus === 'មិនបានចូលរួមប្រជុំ' && !absenceInput) {
+         statusDiv.innerText = "សូមជ្រើសរើសមូលហេតុមិនបានចូលរួមប្រជុំ";
+         statusDiv.style.color = "red"; return;
+      }
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+
+      if (attendanceStatus === 'បានចូលរួមប្រជុំ') {
+        statusDiv.innerText = "កំពុងបើកកាមេរ៉ាថតរូប Selfie ផ្ទាល់...";
+        statusDiv.style.color = "#185a9d";
+
+        try {
+          const videoElement = document.getElementById('cameraFeed');
+          const canvasElement = document.getElementById('photoCanvas');
+
+          // បើកកាមេរ៉ាមុខ (Live Camera)
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+          videoElement.srcObject = stream;
+
+          await new Promise(r => setTimeout(r, 1000)); // រង់ចាំ ១វិនាទីឲ្យកាមេរ៉ាចាប់រូបភាពច្បាស់ល្អ
+
+          const context = canvasElement.getContext('2d');
+          canvasElement.width = videoElement.videoWidth || 480;
+          canvasElement.height = videoElement.videoHeight || 640;
+          context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+          
+          const photoBase64 = canvasElement.toDataURL('image/jpeg', 0.7);
+          stream.getTracks().forEach(track => track.stop()); // បិទកាមេរ៉ាវិញ
+
+          const base64Data = photoBase64.split(',')[1];
+          const fileName = `Selfie_${staffName}_${Date.now()}.jpg`;
+
+          sendDataToBackend({
+            staffName: staffName,
+            role: role,
+            building: building,
+            attendanceStatus: attendanceStatus,
+            absence: "",
+            fileName: fileName,
+            fileData: base64Data,
+            mimeType: 'image/jpeg'
+          }, submitBtn, statusDiv);
+
+        } catch (err) {
+          statusDiv.innerText = "បរាជ័យ៖ សូមអនុញ្ញាត (Allow) សិទ្ធិកាមេរ៉ា (Camera) នៅលើ Browser របស់អ្នក!";
+          statusDiv.style.color = "red";
+          submitBtn.disabled = false;
+        }
+
+      } else {
+        statusDiv.innerText = "កំពុងបញ្ជូនទិន្នន័យអវត្តមាន...";
+        statusDiv.style.color = "#185a9d";
+
+        const fileInput = document.getElementById('attachmentFile');
+        const file = fileInput.files[0];
+        
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            sendDataToBackend({
+              staffName: staffName,
+              role: role,
+              building: building,
+              attendanceStatus: attendanceStatus,
+              absence: absenceInput,
+              fileName: file.name,
+              fileData: e.target.result.split(',')[1],
+              mimeType: file.type
+            }, submitBtn, statusDiv);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          sendDataToBackend({
+            staffName: staffName,
+            role: role,
+            building: building,
+            attendanceStatus: attendanceStatus,
+            absence: absenceInput,
+            fileName: "",
+            fileData: "",
+            mimeType: ""
+          }, submitBtn, statusDiv);
+        }
+      }
+    }
+
+    function sendDataToBackend(data, submitBtn, statusDiv) {
+      statusDiv.innerText = "កំពុងបញ្ជូនទិន្នន័យចូលប្រព័ន្ធ... (Sending)";
+
+      fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+      .then(() => {
+        statusDiv.innerText = "ជោគជ័យ! ទិន្នន័យត្រូវបានបញ្ជូនរួចរាល់។";
+        statusDiv.style.color = "green";
+        
+        setTimeout(() => {
+          document.getElementById('attendanceForm').reset();
+          document.getElementById('staffNameInput').value = "";
+          switchTab('present');
+          submitBtn.disabled = false;
+          submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន";
+          statusDiv.innerText = "";
+        }, 2000);
+      })
+      .catch((error) => {
+        statusDiv.innerText = "បរាជ័យក្នុងការតភ្ជាប់៖ សូមសាកល្បងម្ដងទៀត";
+        statusDiv.style.color = "red";
+        submitBtn.disabled = false; 
+        submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន";
+      });
+    }
+  </script>
+</body>
+</html>
