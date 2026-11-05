@@ -32,19 +32,16 @@
     .dropdown-item { padding: 10px 12px; cursor: pointer; text-align: left; font-size: 14px; border-bottom: 1px solid #f1f1f1; }
     .dropdown-item:hover { background-color: #e8f4fd; color: #185a9d; font-weight: bold; }
 
-    .nav-tab-container { margin-bottom: 20px; }
-    .nav-tab { display: block; width: 100%; padding: 12px; text-align: center; background: #185a9d; color: #fff; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.3s; box-sizing: border-box; }
-    .nav-tab:hover { background: #124175; }
-
+    /* ផ្ទាំង (Tabs) សម្រាប់រើសប្រភេទប្រជុំ */
     .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-    .tab { flex: 1; padding: 12px; text-align: center; background: #e0e0e0; color: #333; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 14px; }
-    .tab.active { background: #185a9d; color: white; }
-    
+    .tab { flex: 1; padding: 12px; text-align: center; background: #e0e0e0; color: #333; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; border: 2px solid transparent; }
+    .tab.active { background: #185a9d; color: white; border-color: #124175; }
+    .tab:hover:not(.active) { background: #d0d0d0; }
+
     button[type="button"] { width: 100%; padding: 14px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; font-family: 'Kantumruy Pro', sans-serif; }
     button:hover { background-color: #218838; }
     button:disabled { background-color: #999; cursor: not-allowed; }
     #status { margin-top: 15px; font-weight: bold; font-size: 15px; }
-    #absence-section { display: none; }
     
     .camera-preview-container { display: none; margin-bottom: 15px; text-align: center; background: #fff3cd; padding: 12px; border-radius: 8px; border: 2px dashed #ffc107; }
     .camera-preview-container label { display: block; font-weight: bold; color: #856404; margin-bottom: 8px; font-size: 15px; animation: pulse 1.5s infinite; }
@@ -53,27 +50,25 @@
     #cameraFeed { width: 100%; max-width: 240px; height: 180px; object-fit: cover; border-radius: 8px; border: 2px solid #ffc107; transform: scaleX(-1); background: #000; }
     #photoCanvas { display: none; }
     .manual-snap-btn { background: #185a9d; color: white; border: none; padding: 10px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; font-family: 'Kantumruy Pro', sans-serif; }
-    .manual-snap-btn:hover { background: #124175; }
   </style>
 </head>
 <body>
 
   <div class="form-container">
     <h2>ផ្នែកសល្យសាស្ត្រ មន្ទីរពេទ្យបង្អែកខេត្តបាត់ដំបង</h2>
-    <h3>វត្តមានប្រជុំប្រចាំខែ <span id="current-month-year"></span></h3>
+    <h3>ចុះឈ្មោះវត្តមានប្រជុំប្រចាំខែ <span id="current-month-year"></span></h3>
 
     <div id="main-form-content">
+      
+      <!-- ជម្រើសប្រភេទប្រជុំ (Meeting Type Tabs) -->
       <div class="tabs">
-        <div class="tab active" id="tab-present" onclick="switchTab('present')">ចុះឈ្មោះវត្តមាន (Selfie)</div>
-        <div class="tab" id="tab-absent" onclick="switchTab('absent')">អវត្តមាន</div>
-      </div>
-
-      <div class="nav-tab-container">
-        <a href="dashboard.html" class="nav-tab">📊 មើលរបាយការណ៍វត្តមានប្រជុំ</a>
+        <div class="tab active" id="tab-general" onclick="switchTab('general')">👥 ប្រជុំរួម (All Staffs)</div>
+        <div class="tab" id="tab-doctor" onclick="switchTab('doctor')">🩺 ប្រជុំគ្រូពេទ្យ (Doctors)</div>
       </div>
 
       <form id="attendanceForm">
-        <input type="hidden" name="attendanceStatus" id="attendanceStatus" value="បានចូលរួមប្រជុំ">
+        <!-- ទុកកំណត់ឈ្មោះ Tab ក្នុង Google Sheets ពេលផ្ញើ -->
+        <input type="hidden" id="meetingType" value="វត្តមានប្រជុំរួម">
 
         <div class="form-group">
           <label>ឈ្មោះជាភាសាខ្មែរ (Name):</label>
@@ -115,25 +110,13 @@
           <button type="button" class="manual-snap-btn" onclick="manualCapture()">📸 ថតរូបភ្លាមៗ (ចុចទីនេះបើកាមេរ៉ាស្ទះ)</button>
         </div>
 
-        <div id="absence-section">
-          <div class="form-group">
-            <label>មូលហេតុអវត្តមាន (Absence):</label>
-            <select name="absence" id="absenceInput">
-              <option value="" disabled selected>-- សូមជ្រើសរើសមូលហេតុអវត្តមាន --</option>
-              <option value="បេសកកម្ម">បេសកកម្ម</option>
-              <option value="សុំច្បាប់">សុំច្បាប់</option>
-              <option value="មានបញ្ហាសុខភាព">មានបញ្ហាសុខភាព</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>សូមបញ្ចូលរូបភាព លិខិតបេសកកម្ម ឬពាក្យសុំច្បាប់ (បើមាន):</label>
-            <input type="file" id="attachmentFile" accept="image/*,application/pdf">
-          </div>
-        </div>
-
-        <button type="button" id="submitBtn" onclick="processAttendance()">បញ្ជូនទិន្នន័យវត្តមាន</button>
+        <button type="button" id="submitBtn" onclick="processAttendance()">បញ្ជូនទិន្នន័យវត្តមាន (Selfie)</button>
         <div id="status"></div>
       </form>
+    </div>
+    
+    <div style="margin-top: 20px;">
+      <a href="dashboard.html" style="color: #185a9d; font-weight: bold; text-decoration: none; font-size: 14px;">📊 មើលរបាយការណ៍វត្តមានប្រជុំសរុប</a>
     </div>
   </div>
 
@@ -200,18 +183,23 @@
       }
     });
 
-    function switchTab(tab) {
-      document.getElementById('tab-present').classList.toggle('active', tab === 'present');
-      document.getElementById('tab-absent').classList.toggle('active', tab === 'absent');
-      document.getElementById('absence-section').style.display = (tab === 'absent') ? 'block' : 'none';
-      document.getElementById('attendanceStatus').value = (tab === 'present') ? 'បានចូលរួមប្រជុំ' : 'មិនបានចូលរួមប្រជុំ';
-      
-      const btn = document.getElementById('submitBtn');
-      if (tab === 'present') {
-        btn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន";
+    // ប្ដូរផ្ទាំងប្រភេទប្រជុំ ដើម្បីកំណត់គោលដៅបញ្ចូលទិន្នន័យ (Google Sheet Tab)
+    function switchTab(tabType) {
+      document.getElementById('tab-general').classList.remove('active');
+      document.getElementById('tab-doctor').classList.remove('active');
+
+      if (tabType === 'general') {
+        document.getElementById('tab-general').classList.add('active');
+        document.getElementById('meetingType').value = "វត្តមានប្រជុំរួម";
       } else {
-        btn.innerText = "បញ្ជូនទិន្នន័យអវត្តមាន";
+        document.getElementById('tab-doctor').classList.add('active');
+        document.getElementById('meetingType').value = "វត្តមានប្រជុំគ្រូពេទ្យ";
       }
+      
+      // បិទកាមេរ៉ាវិញពេលប្ដូរ Tab ការពារ Error
+      stopCameraStream();
+      document.getElementById('camera-preview-section').style.display = 'none';
+      document.getElementById('status').innerText = "";
     }
 
     function calculateEAR(eye) {
@@ -233,11 +221,9 @@
 
     async function processAttendance() {
       const statusDiv = document.getElementById('status');
-      const attendanceStatus = document.getElementById('attendanceStatus').value;
       const staffName = document.getElementById('staffNameInput').value.trim();
       const role = document.getElementById('roleInput').value;
       const building = document.getElementById('buildingInput').value;
-      const absenceInput = document.getElementById('absenceInput').value;
 
       if (!staffName || !role || !building) {
          statusDiv.innerText = "សូមបំពេញព័ត៌មាន (ឈ្មោះ តួនាទី អគារ) ឱ្យបានគ្រប់គ្រាន់សិន!";
@@ -249,130 +235,86 @@
          statusDiv.style.color = "red"; return;
       }
 
-      if (attendanceStatus === 'មិនបានចូលរួមប្រជុំ' && !absenceInput) {
-         statusDiv.innerText = "សូមជ្រើសរើសមូលហេតុអវត្តមាន";
-         statusDiv.style.color = "red"; return;
-      }
-
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
 
-      if (attendanceStatus === 'បានចូលរួមប្រជុំ') {
-        const previewContainer = document.getElementById('camera-preview-section');
-        const videoElement = document.getElementById('cameraFeed');
-        const instructionLabel = document.getElementById('blink-instruction');
+      const previewContainer = document.getElementById('camera-preview-section');
+      const videoElement = document.getElementById('cameraFeed');
+      const instructionLabel = document.getElementById('blink-instruction');
 
-        previewContainer.style.display = 'block';
-        statusDiv.innerText = "📸 កំពុងបើកកាមេរ៉ា... សូមធ្មេចភ្នែក រួចបើកវិញ";
-        statusDiv.style.color = "#185a9d";
-        globalCaptured = false;
+      previewContainer.style.display = 'block';
+      statusDiv.innerText = "📸 កំពុងបើកកាមេរ៉ា... សូមធ្មេចភ្នែក រួចបើកវិញ";
+      statusDiv.style.color = "#185a9d";
+      globalCaptured = false;
 
-        stopCameraStream();
+      stopCameraStream();
 
-        try {
-          const faceMesh = new FaceMesh({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-          });
+      try {
+        const faceMesh = new FaceMesh({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        });
 
-          faceMesh.setOptions({
-            maxNumFaces: 1,
-            refineLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-          });
+        faceMesh.setOptions({
+          maxNumFaces: 1,
+          refineLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
 
-          let hasBlinked = false; 
+        let hasBlinked = false; 
 
-          faceMesh.onResults((results) => {
-            if (globalCaptured) return;
+        faceMesh.onResults((results) => {
+          if (globalCaptured) return;
 
-            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-              const landmarks = results.multiFaceLandmarks[0];
-              const leftEyeIndices = [33, 160, 158, 133, 153, 144];
-              const rightEyeIndices = [362, 385, 387, 263, 373, 380];
+          if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            const landmarks = results.multiFaceLandmarks[0];
+            const leftEyeIndices = [33, 160, 158, 133, 153, 144];
+            const rightEyeIndices = [362, 385, 387, 263, 373, 380];
 
-              const leftEye = leftEyeIndices.map(i => landmarks[i]);
-              const rightEye = rightEyeIndices.map(i => landmarks[i]);
+            const leftEye = leftEyeIndices.map(i => landmarks[i]);
+            const rightEye = rightEyeIndices.map(i => landmarks[i]);
 
-              const leftEAR = calculateEAR(leftEye);
-              const rightEAR = calculateEAR(rightEye);
-              const avgEAR = (leftEAR + rightEAR) / 2;
+            const leftEAR = calculateEAR(leftEye);
+            const rightEAR = calculateEAR(rightEye);
+            const avgEAR = (leftEAR + rightEAR) / 2;
 
-              if (!hasBlinked && avgEAR < 0.21) {
-                hasBlinked = true;
-                instructionLabel.innerText = "✨ បានរកឃើញការធ្មេចភ្នែក! ឥឡូវសូមបើកភ្នែកឡើងវិញ...";
-              }
-
-              if (hasBlinked && avgEAR > 0.23) {
-                globalCaptured = true;
-                instructionLabel.innerText = "📸 កំពុងថតរូបដោយស្វ័យប្រវត្តិ...";
-                
-                setTimeout(() => {
-                  executeCaptureAndSend();
-                }, 300);
-              }
+            if (!hasBlinked && avgEAR < 0.21) {
+              hasBlinked = true;
+              instructionLabel.innerText = "✨ បានរកឃើញការធ្មេចភ្នែក! ឥឡូវសូមបើកភ្នែកឡើងវិញ...";
             }
-          });
 
-          // ប្រើ MediaPipe Camera Utility ផ្ទាល់ដើម្បីជៀសវាង NotReadableError លើ Android
-          globalActiveCamera = new Camera(videoElement, {
-            onFrame: async () => {
-              if (!globalCaptured) {
-                await faceMesh.send({ image: videoElement });
-              }
-            },
-            width: 480,
-            height: 640
-          });
-          
-          await globalActiveCamera.start();
+            if (hasBlinked && avgEAR > 0.23) {
+              globalCaptured = true;
+              instructionLabel.innerText = "📸 កំពុងថតរូបដោយស្វ័យប្រវត្តិ...";
+              
+              setTimeout(() => {
+                executeCaptureAndSend();
+              }, 300);
+            }
+          }
+        });
 
-        } catch (err) {
-          stopCameraStream();
-          previewContainer.style.display = 'none';
-          statusDiv.innerText = "បរាជ័យ៖ កាមេរ៉ាជាប់សោរ (NotReadableError)! សូមបិទ Tab Chrome ផ្សេងៗ ឬ Restart ទូរស័ព្ទម្ដងទៀត។";
-          statusDiv.style.color = "red";
-          submitBtn.disabled = false;
-        }
-
-      } else {
-        statusDiv.innerText = "កំពុងបញ្ជូនទិន្នន័យអវត្តមាន...";
-        statusDiv.style.color = "#185a9d";
-
-        const fileInput = document.getElementById('attachmentFile');
-        const file = fileInput.files[0];
+        globalActiveCamera = new Camera(videoElement, {
+          onFrame: async () => {
+            if (!globalCaptured) {
+              await faceMesh.send({ image: videoElement });
+            }
+          },
+          width: 480,
+          height: 640
+        });
         
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            sendDataToBackend({
-              staffName: staffName,
-              role: role,
-              building: building,
-              attendanceStatus: attendanceStatus,
-              absence: absenceInput,
-              fileName: file.name,
-              fileData: e.target.result.split(',')[1],
-              mimeType: file.type
-            }, submitBtn, statusDiv);
-          };
-          reader.readAsDataURL(file);
-        } else {
-          sendDataToBackend({
-            staffName: staffName,
-            role: role,
-            building: building,
-            attendanceStatus: attendanceStatus,
-            absence: absenceInput,
-            fileName: "",
-            fileData: "",
-            mimeType: ""
-          }, submitBtn, statusDiv);
-        }
+        await globalActiveCamera.start();
+
+      } catch (err) {
+        stopCameraStream();
+        previewContainer.style.display = 'none';
+        statusDiv.innerText = "បរាជ័យ៖ កាមេរ៉ាជាប់សោរ (NotReadableError)! សូមប្រើប៊ូតុងថតខាងក្រោមជំនួស។";
+        statusDiv.style.color = "red";
+        submitBtn.disabled = false;
       }
     }
 
-    // មុខងារថតរូបដោយដៃសង្គ្រោះបន្ទាន់
     function manualCapture() {
       if (!globalCaptured) {
         globalCaptured = true;
@@ -390,7 +332,9 @@
       const staffName = document.getElementById('staffNameInput').value.trim();
       const role = document.getElementById('roleInput').value;
       const building = document.getElementById('buildingInput').value;
-      const attendanceStatus = document.getElementById('attendanceStatus').value;
+      
+      // ទាញយកឈ្មោះ Tab ដែលបានជ្រើសរើស (វត្តមានប្រជុំរួម ឬ វត្តមានប្រជុំគ្រូពេទ្យ)
+      const targetSheet = document.getElementById('meetingType').value;
 
       try {
         const context = canvasElement.getContext('2d');
@@ -419,7 +363,8 @@
           staffName: staffName,
           role: role,
           building: building,
-          attendanceStatus: attendanceStatus,
+          sheetName: targetSheet, // ផ្ញើឈ្មោះ Tab ឱ្យចំគោលដៅ
+          attendanceStatus: "បានចូលរួមប្រជុំ",
           absence: "",
           fileName: fileName,
           fileData: base64Data,
@@ -451,9 +396,8 @@
         setTimeout(() => {
           document.getElementById('attendanceForm').reset();
           document.getElementById('staffNameInput').value = "";
-          switchTab('present');
           submitBtn.disabled = false;
-          submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន";
+          submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន (Selfie)";
           statusDiv.innerText = "";
           window.location.reload(); 
         }, 2000);
@@ -462,7 +406,7 @@
         statusDiv.innerText = "បរាជ័យក្នុងការតភ្ជាប់៖ សូមសាកល្បងម្ដងទៀត";
         statusDiv.style.color = "red";
         submitBtn.disabled = false; 
-        submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន";
+        submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន (Selfie)";
       });
     }
   </script>
