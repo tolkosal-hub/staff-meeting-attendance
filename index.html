@@ -103,7 +103,7 @@
           </select>
         </div>
 
-        <!-- Camera Preview Box (លុបប៊ូតុង Manual Snap ចេញ) -->
+        <!-- Camera Preview Box -->
         <div class="camera-preview-container" id="camera-preview-section">
           <label id="blink-instruction">📸 សូមធ្មេចភ្នែក រួចបើកវិញធម្មតា...</label>
           <video id="cameraFeed" playsinline autoplay muted></video>
@@ -123,7 +123,8 @@
   <script>
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxL4i_uIsdavDV_cgDkmqhf6pZ-5TFyTR8tWHMvbmn_TrUo1-TIvg2F81U79kJn3Ww/exec";
 
-    const staffList = [
+    // 1. Staff Name Lists
+    const allStaffList = [
       "ហួត សុជាតិ", "ហួត សុគុណ", "លីម សារ៉ាន់ឌី", "តុល កុសល", "ស៊ា សុគន្ធ", "ស៊ុម រដ្ឋា", 
       "សួន សុវណ្ណារ៉ា", "ខ្លូត វណ្ណវិច្ឆ័យ", "ទន់ វឌ្ឍនៈ", "ញ៉ែម សមបញ្ញា", "ភិន សុភី", "វ៉ុន វ៉ាន់នី", 
       "ហាស់ ស៊ីផាន់", "អ៊ាន ម៉ារ៉ាឌី", "ម៉ៅ តារា", "សារ៉ង សារៈសិន្ធុ", "យ៉ម ផល្លា", "ស៊ិច ពិសី", 
@@ -138,6 +139,24 @@
       "អ៊ុក សារ៉ាវី", "សាន ធីណាន", "គុជ សោភា", "វ៉ិត ឆវី", "ប៉េង ហង្សដានេត", "សុន វណ្ឌី", "សាន់ ភារ៉េត", "អ៊ា សុទ្ធី"
     ];
 
+    const doctorList = [
+      "ហួត សុជាតិ", "ហួត សុគុណ", "លីម សារ៉ាន់ឌី", "តុល កុសល", "ស៊ា សុគន្ធ", "ស៊ុម រដ្ឋា", 
+      "សួន សុវណ្ណារ៉ា", "ខ្លូត វណ្ណវិច្ឆ័យ", "ទន់ វឌ្ឍនៈ", "ញ៉ែម សមបញ្ញា", "ភិន សុភី", "វ៉ុន វ៉ាន់នី"
+    ];
+
+    // 2. Roles & Buildings Dynamic Lists
+    const allRoles = [
+      "ប្រធានផ្នែក", "អនុប្រធានផ្នែក", "គ្រូពេទ្យព្យាបាល", "នាយអគារ", "នាយអគាររង", 
+      "ប្រធានក្រុមដាក់ថ្នាំសណ្ដំ", "ប្រធានក្រុមវះកាត់តូច", "មន្ត្រី", "មន្ត្រីកិច្ចសន្យា", "បុគ្គលិកជំនួយការ"
+    ];
+    const doctorRoles = ["ប្រធានផ្នែក", "អនុប្រធានផ្នែក", "គ្រូពេទ្យព្យាបាល"];
+
+    const allBuildings = ["សល្យសាស្ត្រ", "សល្យាគារ", "ប្រពោធនកម្មនិងសណ្ដំ", "វះកាត់តូច"];
+    const doctorBuildings = ["សល្យសាស្ត្រ"];
+
+    // Track which list is currently active (defaults to all staff)
+    let currentStaffList = allStaffList;
+
     const khmerMonths = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"];
     const today = new Date();
     const currentMonth = khmerMonths[today.getMonth()];
@@ -147,13 +166,13 @@
     document.getElementById("current-month-year").innerText = `${currentMonth} ឆ្នាំ ${currentYear.toString().split('').map(d => khmerDigits[d] || d).join('')}`;
 
     function showDropdown() {
-      renderDropdown(staffList);
+      renderDropdown(currentStaffList);
       document.getElementById('dropdownList').style.display = 'block';
     }
 
     function filterNames() {
       const keyword = document.getElementById('staffNameInput').value.toLowerCase();
-      const filtered = staffList.filter(name => name.toLowerCase().includes(keyword));
+      const filtered = currentStaffList.filter(name => name.toLowerCase().includes(keyword));
       renderDropdown(filtered);
       document.getElementById('dropdownList').style.display = 'block';
     }
@@ -183,20 +202,42 @@
       }
     });
 
-    // ប្ដូរផ្ទាំងប្រភេទប្រជុំ ដើម្បីកំណត់គោលដៅបញ្ចូលទិន្នន័យ (Google Sheet Tab)
+    // Helper function to rebuild Dropdown options dynamically
+    function updateDropdownOptions(selectId, optionsArray, placeholder) {
+      const selectElement = document.getElementById(selectId);
+      selectElement.innerHTML = `<option value="" disabled selected>${placeholder}</option>`;
+      optionsArray.forEach(opt => {
+        const optionNode = document.createElement("option");
+        optionNode.value = opt;
+        optionNode.innerText = opt;
+        selectElement.appendChild(optionNode);
+      });
+    }
+
     function switchTab(tabType) {
       document.getElementById('tab-general').classList.remove('active');
       document.getElementById('tab-doctor').classList.remove('active');
-
+      
+      // Clear the current inputs when switching tabs
+      document.getElementById('staffNameInput').value = "";
+      
       if (tabType === 'general') {
         document.getElementById('tab-general').classList.add('active');
         document.getElementById('meetingType').value = "វត្តមានប្រជុំរួម";
+        
+        currentStaffList = allStaffList; 
+        updateDropdownOptions('roleInput', allRoles, 'ជ្រើសរើសតួនាទី...');
+        updateDropdownOptions('buildingInput', allBuildings, 'ជ្រើសរើសអគារ...');
+
       } else {
         document.getElementById('tab-doctor').classList.add('active');
         document.getElementById('meetingType').value = "វត្តមានប្រជុំគ្រូពេទ្យ";
+        
+        currentStaffList = doctorList;
+        updateDropdownOptions('roleInput', doctorRoles, 'ជ្រើសរើសតួនាទី...');
+        updateDropdownOptions('buildingInput', doctorBuildings, 'ជ្រើសរើសអគារ...');
       }
       
-      // បិទកាមេរ៉ាវិញពេលប្ដូរ Tab ការពារ Error
       stopCameraStream();
       document.getElementById('camera-preview-section').style.display = 'none';
       document.getElementById('status').innerText = "";
@@ -230,7 +271,7 @@
          statusDiv.style.color = "red"; return;
       }
 
-      if (!staffList.includes(staffName)) {
+      if (!currentStaffList.includes(staffName)) {
          statusDiv.innerText = "សូមជ្រើសរើសឈ្មោះដែលមានក្នុងបញ្ជីឱ្យបានត្រឹមត្រូវ!";
          statusDiv.style.color = "red"; return;
       }
@@ -309,7 +350,6 @@
       } catch (err) {
         stopCameraStream();
         previewContainer.style.display = 'none';
-        // ប្តូរអត្ថបទ ដើម្បីកុំឲ្យមានការណែនាំពីប៊ូតុងថតដែលបានលុប
         statusDiv.innerText = "បរាជ័យ៖ កាមេរ៉ាជាប់សោរ ឬអ្នកមិនបានអនុញ្ញាតឱ្យប្រើប្រាស់កាមេរ៉ា (NotReadableError)! សូមសាកល្បងម្ដងទៀត។";
         statusDiv.style.color = "red";
         submitBtn.disabled = false;
@@ -327,7 +367,6 @@
       const role = document.getElementById('roleInput').value;
       const building = document.getElementById('buildingInput').value;
       
-      // ទាញយកឈ្មោះ Tab ដែលបានជ្រើសរើស (វត្តមានប្រជុំរួម ឬ វត្តមានប្រជុំគ្រូពេទ្យ)
       const targetSheet = document.getElementById('meetingType').value;
 
       try {
@@ -357,7 +396,7 @@
           staffName: staffName,
           role: role,
           building: building,
-          sheetName: targetSheet, // ផ្ញើឈ្មោះ Tab ឱ្យចំគោលដៅ
+          sheetName: targetSheet,
           attendanceStatus: "បានចូលរួមប្រជុំ",
           absence: "",
           fileName: fileName,
