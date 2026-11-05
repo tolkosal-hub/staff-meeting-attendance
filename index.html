@@ -49,7 +49,6 @@
     
     #cameraFeed { width: 100%; max-width: 240px; height: 180px; object-fit: cover; border-radius: 8px; border: 2px solid #ffc107; transform: scaleX(-1); background: #000; }
     #photoCanvas { display: none; }
-    .manual-snap-btn { background: #185a9d; color: white; border: none; padding: 10px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; font-family: 'Kantumruy Pro', sans-serif; }
   </style>
 </head>
 <body>
@@ -102,12 +101,11 @@
           </select>
         </div>
 
-        <!-- Camera Preview Box -->
+        <!-- Camera Preview Box (លុបប៊ូតុង Manual Snap ចេញ) -->
         <div class="camera-preview-container" id="camera-preview-section">
           <label id="blink-instruction">📸 សូមធ្មេចភ្នែក រួចបើកវិញធម្មតា...</label>
           <video id="cameraFeed" playsinline autoplay muted></video>
           <canvas id="photoCanvas"></canvas>
-          <button type="button" class="manual-snap-btn" onclick="manualCapture()">📸 ថតរូបភ្លាមៗ (ចុចទីនេះបើកាមេរ៉ាស្ទះ)</button>
         </div>
 
         <button type="button" id="submitBtn" onclick="processAttendance()">បញ្ជូនទិន្នន័យវត្តមាន (Selfie)</button>
@@ -309,16 +307,10 @@
       } catch (err) {
         stopCameraStream();
         previewContainer.style.display = 'none';
-        statusDiv.innerText = "បរាជ័យ៖ កាមេរ៉ាជាប់សោរ (NotReadableError)! សូមប្រើប៊ូតុងថតខាងក្រោមជំនួស។";
+        // ប្តូរអត្ថបទ ដើម្បីកុំឲ្យមានការណែនាំពីប៊ូតុងថតដែលបានលុប
+        statusDiv.innerText = "បរាជ័យ៖ កាមេរ៉ាជាប់សោរ ឬអ្នកមិនបានអនុញ្ញាតឱ្យប្រើប្រាស់កាមេរ៉ា (NotReadableError)! សូមសាកល្បងម្ដងទៀត។";
         statusDiv.style.color = "red";
         submitBtn.disabled = false;
-      }
-    }
-
-    function manualCapture() {
-      if (!globalCaptured) {
-        globalCaptured = true;
-        executeCaptureAndSend();
       }
     }
 
@@ -383,8 +375,6 @@
     function sendDataToBackend(data, submitBtn, statusDiv) {
       statusDiv.innerText = "កំពុងបញ្ជូនទិន្នន័យចូលប្រព័ន្ធ... (Sending)";
 
-      // ការកែប្រែ៖ ដក 'mode: "no-cors"' និងប្តូរ 'Content-Type' ទៅ 'text/plain;charset=utf-8' 
-      // ដើម្បីធានាថា Browser មិនទប់ស្កាត់ (Bypass Preflight CORS Request)
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
