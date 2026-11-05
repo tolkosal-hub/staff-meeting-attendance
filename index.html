@@ -32,7 +32,7 @@
     .dropdown-item { padding: 10px 12px; cursor: pointer; text-align: left; font-size: 14px; border-bottom: 1px solid #f1f1f1; }
     .dropdown-item:hover { background-color: #e8f4fd; color: #185a9d; font-weight: bold; }
 
-    /* Nav Tab Styling (ដាក់នៅក្រោម Tab អវត្តមាន) */
+    /* Nav Tab Styling */
     .nav-tab-container { margin-bottom: 20px; }
     .nav-tab { display: block; width: 100%; padding: 12px; text-align: center; background: #185a9d; color: #fff; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.3s; box-sizing: border-box; }
     .nav-tab:hover { background: #124175; }
@@ -63,11 +63,10 @@
 
     <div id="main-form-content">
       <div class="tabs">
-        <div class="tab active" id="tab-present" onclick="switchTab('present')">ចុះឈ្មោះវត្តមាន</div>
+        <div class="tab active" id="tab-present" onclick="switchTab('present')">ចុះឈ្មោះវត្តមាន (Selfie)</div>
         <div class="tab" id="tab-absent" onclick="switchTab('absent')">អវត្តមាន</div>
       </div>
 
-      <!-- Nav Tab មើលរបាយការណ៍ ដាក់នៅក្រោម Tab អវត្តមាន -->
       <div class="nav-tab-container">
         <a href="dashboard.html" class="nav-tab">📊 មើលរបាយការណ៍វត្តមានប្រជុំ</a>
       </div>
@@ -224,7 +223,6 @@
     let globalActiveCamera = null;
     let globalCaptured = false;
 
-    // មុខងារជួយបិទនិងលែងតំណភ្ជាប់កាមេរ៉ា (Free Camera Hardware Lock)
     function stopCameraStream() {
       if (globalVideoStream) {
         globalVideoStream.getTracks().forEach(track => track.stop());
@@ -272,13 +270,18 @@
         statusDiv.style.color = "#185a9d";
         globalCaptured = false;
 
-        // បិទ Camera ចាស់មុនបើកសាថ្មី (ការពារ NotReadableError บน Android)
         stopCameraStream();
 
         try {
-          globalVideoStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } 
-          });
+          // កែសម្រួលថ្មី៖ ប្រើប្រាស់ simple constraints សម្រាប់ Android / Samsung S26 Ultra ធានាថាមិន Error NotReadableError
+          const constraints = {
+            video: {
+              facingMode: "user"
+            },
+            audio: false
+          };
+
+          globalVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
           videoElement.srcObject = globalVideoStream;
 
           const faceMesh = new FaceMesh({
@@ -339,7 +342,7 @@
         } catch (err) {
           stopCameraStream();
           previewContainer.style.display = 'none';
-          statusDiv.innerText = "បរាជ័យ៖ កាមេរ៉ាជាប់សោរ ឬមិនមានសិទ្ធិ (Not Readable)! សូមបិទ Tab ផ្សេងៗ ឬ Restart Browser រួចសាកល្បងម្ដងទៀត។";
+          statusDiv.innerText = "បរាជ័យ៖ កាមេរ៉ាជាប់សោរ ឬមិនមានសិទ្ធិ (Not Readable)! សូមពិនិត្យសិទ្ធិ Camera ក្នុង Chrome លើទូរស័ព្ទរបស់អ្នក។";
           statusDiv.style.color = "red";
           submitBtn.disabled = false;
         }
@@ -404,7 +407,6 @@
         
         const photoBase64 = canvasElement.toDataURL('image/jpeg', 0.7);
         
-        // លែងសិទ្ធិកាមេរ៉ាទាន់ពេល
         stopCameraStream();
         previewContainer.style.display = 'none';
 
