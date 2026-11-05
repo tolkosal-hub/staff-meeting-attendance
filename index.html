@@ -32,7 +32,6 @@
     .dropdown-item { padding: 10px 12px; cursor: pointer; text-align: left; font-size: 14px; border-bottom: 1px solid #f1f1f1; }
     .dropdown-item:hover { background-color: #e8f4fd; color: #185a9d; font-weight: bold; }
 
-    /* Nav Tab Styling */
     .nav-tab-container { margin-bottom: 20px; }
     .nav-tab { display: block; width: 100%; padding: 12px; text-align: center; background: #185a9d; color: #fff; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.3s; box-sizing: border-box; }
     .nav-tab:hover { background: #124175; }
@@ -53,6 +52,8 @@
     
     #cameraFeed { width: 100%; max-width: 240px; height: 180px; object-fit: cover; border-radius: 8px; border: 2px solid #ffc107; transform: scaleX(-1); background: #000; }
     #photoCanvas { display: none; }
+    .manual-snap-btn { background: #185a9d; color: white; border: none; padding: 10px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; font-family: 'Kantumruy Pro', sans-serif; }
+    .manual-snap-btn:hover { background: #124175; }
   </style>
 </head>
 <body>
@@ -111,6 +112,7 @@
           <label id="blink-instruction">📸 សូមធ្មេចភ្នែក រួចបើកវិញធម្មតា...</label>
           <video id="cameraFeed" playsinline autoplay muted></video>
           <canvas id="photoCanvas"></canvas>
+          <button type="button" class="manual-snap-btn" onclick="manualCapture()">📸 ថតរូបភ្លាមៗ (ចុចទីនេះបើកាមេរ៉ាស្ទះ)</button>
         </div>
 
         <div id="absence-section">
@@ -219,15 +221,10 @@
       return (vertical1 + vertical2) / (2.0 * horizontal);
     }
 
-    let globalVideoStream = null;
     let globalActiveCamera = null;
     let globalCaptured = false;
 
     function stopCameraStream() {
-      if (globalVideoStream) {
-        globalVideoStream.getTracks().forEach(track => track.stop());
-        globalVideoStream = null;
-      }
       if (globalActiveCamera) {
         try { globalActiveCamera.stop(); } catch(e) {}
         globalActiveCamera = null;
@@ -273,17 +270,6 @@
         stopCameraStream();
 
         try {
-          // កែសម្រួលថ្មី៖ ប្រើប្រាស់ simple constraints សម្រាប់ Android / Samsung S26 Ultra ធានាថាមិន Error NotReadableError
-          const constraints = {
-            video: {
-              facingMode: "user"
-            },
-            audio: false
-          };
-
-          globalVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
-          videoElement.srcObject = globalVideoStream;
-
           const faceMesh = new FaceMesh({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
           });
@@ -328,6 +314,7 @@
             }
           });
 
+          // ប្រើ MediaPipe Camera Utility ផ្ទាល់ដើម្បីជៀសវាង NotReadableError លើ Android
           globalActiveCamera = new Camera(videoElement, {
             onFrame: async () => {
               if (!globalCaptured) {
@@ -337,12 +324,13 @@
             width: 480,
             height: 640
           });
-          globalActiveCamera.start();
+          
+          await globalActiveCamera.start();
 
         } catch (err) {
           stopCameraStream();
           previewContainer.style.display = 'none';
-          statusDiv.innerText = "បរាជ័យ៖ កាមេរ៉ាជាប់សោរ ឬមិនមានសិទ្ធិ (Not Readable)! សូមពិនិត្យសិទ្ធិ Camera ក្នុង Chrome លើទូរស័ព្ទរបស់អ្នក។";
+          statusDiv.innerText = "បរាជ័យ៖ កាមេរ៉ាជាប់សោរ (NotReadableError)! សូមបិទ Tab Chrome ផ្សេងៗ ឬ Restart ទូរស័ព្ទម្ដងទៀត។";
           statusDiv.style.color = "red";
           submitBtn.disabled = false;
         }
@@ -384,10 +372,15 @@
       }
     }
 
-    function executeCaptureAndSend() {
-      if (globalCaptured && arguments.callee.done) return;
-      arguments.callee.done = true;
+    // មុខងារថតរូបដោយដៃសង្គ្រោះបន្ទាន់
+    function manualCapture() {
+      if (!globalCaptured) {
+        globalCaptured = true;
+        executeCaptureAndSend();
+      }
+    }
 
+    function executeCaptureAndSend() {
       const videoElement = document.getElementById('cameraFeed');
       const canvasElement = document.getElementById('photoCanvas');
       const previewContainer = document.getElementById('camera-preview-section');
