@@ -6,6 +6,9 @@
   <title>Meeting Attendance</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+  
+  <!-- បន្ថែម Script នេះសម្រាប់ Pop-up (SweetAlert2) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600&display=swap');
@@ -415,6 +418,7 @@
 
     function sendDataToBackend(data, submitBtn, statusDiv) {
       statusDiv.innerText = "កំពុងបញ្ជូនទិន្នន័យចូលប្រព័ន្ធ... (Sending)";
+      statusDiv.style.color = "#185a9d";
 
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -424,17 +428,28 @@
       .then(response => response.json())
       .then(result => {
         if (result.success) {
-          statusDiv.innerText = "ជោគជ័យ! ទិន្នន័យត្រូវបានបញ្ជូនរួចរាល់។";
-          statusDiv.style.color = "green";
+          // លុបអក្សរកំពុងបញ្ជូនចេញ
+          statusDiv.innerText = "";
           
-          setTimeout(() => {
-            document.getElementById('attendanceForm').reset();
-            document.getElementById('staffNameInput').value = "";
-            submitBtn.disabled = false;
-            submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន (Selfie)";
-            statusDiv.innerText = "";
-            window.location.reload(); 
-          }, 2000);
+          // បង្ហាញ Pop-up ជោគជ័យ
+          Swal.fire({
+            title: 'ជោគជ័យ!',
+            text: 'ការចុះឈ្មោះវត្តមានរបស់អ្នកត្រូវបានកត់ត្រាចូលប្រព័ន្ធរួចរាល់។',
+            icon: 'success',
+            confirmButtonText: 'យល់ព្រម',
+            confirmButtonColor: '#28a745', // ពណ៌បៃតងដូចប៊ូតុង
+            allowOutsideClick: false // តម្រូវឲ្យចុចប៊ូតុងទើបបាត់ Pop-up
+          }).then((res) => {
+            if (res.isConfirmed) {
+              // ធ្វើការ Reset និង Reload ក្រោយពេលអ្នកប្រើប្រាស់ចុច "យល់ព្រម"
+              document.getElementById('attendanceForm').reset();
+              document.getElementById('staffNameInput').value = "";
+              submitBtn.disabled = false;
+              submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន (Selfie)";
+              window.location.reload(); 
+            }
+          });
+
         } else {
           statusDiv.innerText = "បរាជ័យ៖ " + (result.error || "មិនស្គាល់បញ្ហា");
           statusDiv.style.color = "red";
