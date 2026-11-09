@@ -8,34 +8,115 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600&display=swap');
     body {
-      font-family: 'Kantumruy Pro', sans-serif; background: #f4f7f6;
+      font-family: 'Kantumruy Pro', sans-serif;
+      /* ដាក់ផ្ទៃខាងក្រោយមានចលនាដូចទំព័រ index.html */
+      background: linear-gradient(-45deg, #185a9d, #43cea2, #23a6d5, #23d5ab);
+      background-size: 400% 400%; animation: gradientBG 15s ease infinite;
       display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;
     }
+    @keyframes gradientBG { 
+      0% { background-position: 0% 50%; } 
+      50% { background-position: 100% 50%; } 
+      100% { background-position: 0% 50%; } 
+    }
+    
     .admin-panel {
-      background: #fff; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      text-align: center; width: 100%; max-width: 400px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 40px; 
+      border-radius: 20px; 
+      box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+      text-align: center; 
+      width: 100%; 
+      max-width: 450px;
+      display: none; /* លាក់ផ្ទាំងនេះជាបឋមរហូតទាល់តែវាយលេខកូដត្រូវ */
+      backdrop-filter: blur(10px);
     }
-    h2 { color: #185a9d; margin-bottom: 20px; }
+    
+    h2 { 
+      color: #185a9d; 
+      margin-bottom: 10px; 
+      font-size: 26px;
+    }
+    
+    .subtitle {
+      color: #555;
+      font-size: 15px;
+      margin-bottom: 25px;
+    }
+
     .status-badge {
-      display: inline-block; padding: 10px 20px; border-radius: 50px; font-weight: bold; font-size: 18px; margin-bottom: 30px;
+      display: inline-block; 
+      padding: 12px 25px; 
+      border-radius: 50px; 
+      font-weight: bold; 
+      font-size: 20px; 
+      margin-bottom: 30px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      transition: 0.3s;
     }
-    .status-open { background: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
-    .status-closed { background: #f8d7da; color: #721c24; border: 2px solid #f5c6cb; }
+    .status-open { 
+      background: linear-gradient(135deg, #d4edda, #c3e6cb); 
+      color: #155724; 
+      border: 2px solid #28a745; 
+    }
+    .status-closed { 
+      background: linear-gradient(135deg, #f8d7da, #f5c6cb); 
+      color: #721c24; 
+      border: 2px solid #dc3545; 
+    }
+    
     button {
-      width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 8px;
-      font-size: 16px; font-weight: bold; cursor: pointer; font-family: 'Kantumruy Pro', sans-serif; transition: 0.3s;
+      width: 100%; 
+      padding: 16px; 
+      margin: 10px 0; 
+      border: none; 
+      border-radius: 12px;
+      font-size: 18px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      font-family: 'Kantumruy Pro', sans-serif; 
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
-    .btn-open { background-color: #28a745; color: white; }
-    .btn-open:hover { background-color: #218838; }
-    .btn-close { background-color: #dc3545; color: white; }
-    .btn-close:hover { background-color: #c82333; }
+    
+    .btn-open { 
+      background: linear-gradient(135deg, #28a745, #20c997); 
+      color: white; 
+    }
+    .btn-open:hover { 
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+    }
+    
+    .btn-close { 
+      background: linear-gradient(135deg, #dc3545, #f82b43); 
+      color: white; 
+    }
+    .btn-close:hover { 
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+    }
+
+    /* តម្រឹម Input Password របស់ SweetAlert ឱ្យស្អាត */
+    .swal2-input {
+      font-family: 'Kantumruy Pro', sans-serif !important;
+      text-align: center;
+      letter-spacing: 2px;
+    }
   </style>
 </head>
 <body>
 
-  <div class="admin-panel">
-    <h2>ផ្ទាំងគ្រប់គ្រង (Admin Panel)</h2>
-    <div>ស្ថានភាពប្រព័ន្ធបច្ចុប្បន្ន៖</div>
+  <div class="admin-panel" id="mainAdminPanel">
+    <!-- រូបកាកបាទពេទ្យរាងមូលតូចសម្រាប់លើផ្ទាំង Admin ខាងក្នុង -->
+    <div style="margin-bottom: 15px;">
+      <img src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%23e63946'/%3E%3Cpath d='M41 24h18v17h17v18H59v17H41V59H24V41h17V24z' fill='%23fff'/%3E%3C/svg%3E" alt="Hospital Cross" style="width: 60px; height: 60px;">
+    </div>
+    
+    <h2>ផ្ទាំងគ្រប់គ្រងប្រព័ន្ធ</h2>
+    <div class="subtitle">ផ្នែកសល្យសាស្ត្រ មន្ទីរពេទ្យបង្អែកខេត្តបាត់ដំបង</div>
+    
+    <div style="font-weight: bold; margin-bottom: 15px; color: #333;">ស្ថានភាពប្រព័ន្ធបច្ចុប្បន្ន៖</div>
     <div id="currentStatus" class="status-badge status-closed">កំពុងពិនិត្យ...</div>
 
     <button class="btn-open" onclick="changeStatus('OPEN')">🟢 បើកឲ្យចុះឈ្មោះ (OPEN)</button>
@@ -43,16 +124,53 @@
   </div>
 
   <script>
-    // បញ្ចូល URL Apps Script របស់អ្នកនៅទីនេះ (URL តែមួយជាមួយទំព័រវត្តមាន)
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxL4i_uIsdavDV_cgDkmqhf6pZ-5TFyTR8tWHMvbmn_TrUo1-TIvg2F81U79kJn3Ww/exec";
+    const ADMIN_PASSWORD = "12345678"; // កំណត់ពាក្យសម្ងាត់នៅទីនេះ
 
-    // ឆែកស្ថានភាពបច្ចុប្បន្នពេលបើកទំព័រ
+    // ពេលបើកទំព័រភ្លាម ទាមទារពាក្យសម្ងាត់
     window.onload = function() {
+      checkPassword();
+    };
+
+    function checkPassword() {
+      Swal.fire({
+        title: 'សូមស្វាគមន៍',
+        text: 'សូមបញ្ចូលពាក្យសម្ងាត់ដើម្បីចូលប្រើប្រព័ន្ធគ្រប់គ្រង',
+        // ប្រើប្រាស់រូបកាកបាទពេទ្យរាងមូលពណ៌ក្រហម (Vector SVG ច្បាស់ល្អ មិនដាច់)
+        imageUrl: "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%23e63946'/%3E%3Cpath d='M41 24h18v17h17v18H59v17H41V59H24V41h17V24z' fill='%23fff'/%3E%3C/svg%3E", 
+        imageWidth: 80,
+        imageHeight: 80,
+        imageAlt: 'Medical Cross Logo',
+        input: 'password',
+        inputPlaceholder: 'ពាក្យសម្ងាត់...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        confirmButtonText: 'ចូលប្រព័ន្ធ (Login)',
+        confirmButtonColor: '#185a9d',
+        preConfirm: (password) => {
+          if (password !== ADMIN_PASSWORD) {
+            Swal.showValidationMessage('ពាក្យសម្ងាត់មិនត្រឹមត្រូវទេ!');
+          }
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // បើវាយត្រូវ បង្ហាញផ្ទាំង Admin និងទាញយក Status
+          document.getElementById('mainAdminPanel').style.display = 'block';
+          fetchStatus();
+        }
+      });
+    }
+
+    // មុខងារទាញយក Status ពី Google Sheets
+    function fetchStatus() {
       fetch(APPS_SCRIPT_URL + "?action=getStatus")
         .then(res => res.json())
         .then(data => updateUI(data.status))
-        .catch(err => console.error(err));
-    };
+        .catch(err => {
+          console.error(err);
+          Swal.fire('បញ្ហា', 'មិនអាចទាញយកទិន្នន័យបានទេ', 'error');
+        });
+    }
 
     function updateUI(status) {
       const badge = document.getElementById('currentStatus');
@@ -81,7 +199,12 @@
       .then(result => {
         if (result.success) {
           updateUI(result.status);
-          Swal.fire('ជោគជ័យ!', `ប្រព័ន្ធត្រូវបាន ${newStatus === 'OPEN' ? 'បើក' : 'បិទ'} រួចរាល់។`, 'success');
+          Swal.fire({
+            title: 'ជោគជ័យ!', 
+            text: `ប្រព័ន្ធត្រូវបាន ${newStatus === 'OPEN' ? 'បើក' : 'បិទ'} រួចរាល់។`, 
+            icon: 'success',
+            confirmButtonColor: '#185a9d'
+          });
         }
       })
       .catch(err => Swal.fire('បរាជ័យ', 'មានបញ្ហាក្នុងការតភ្ជាប់', 'error'));
