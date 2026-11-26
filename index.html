@@ -127,13 +127,20 @@
   <script>
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxL4i_uIsdavDV_cgDkmqhf6pZ-5TFyTR8tWHMvbmn_TrUo1-TIvg2F81U79kJn3Ww/exec";
 
-    // --- កូដបន្ថែមថ្មី សម្រាប់ឆែកស្ថានភាព បើក/បិទ ---
+    // --- បញ្ជីឈ្មោះដែលមិនតម្រូវឱ្យស្កេនមុខ (Selfie) ---
+    const exemptSelfieList = [
+      "ហួត សុជាតិ",
+      "ហួត សុគុណ",
+      "លីម សារ៉ាន់ឌី",
+      "តុល កុសល"
+    ];
+
+    // --- ឆែកស្ថានភាព បើក/បិទ ---
     window.onload = function() {
       fetch(APPS_SCRIPT_URL + "?action=getStatus")
         .then(res => res.json())
         .then(data => {
           if (data.status === "CLOSED") {
-            // បើកបិទ វានឹងលាក់ Form ទាំងអស់ រួចបង្ហាញសារជូនដំណឹង
             document.getElementById("main-form-content").innerHTML = `
               <div style="padding: 40px 20px; text-align: center;">
                 <h1 style="font-size: 50px; margin: 0;">🔒</h1>
@@ -145,7 +152,6 @@
         })
         .catch(err => console.error("Error checking status:", err));
     };
-    // --- បញ្ចប់កូដបន្ថែមថ្មី ---
 
     // 1. Staff Name Lists
     const allStaffList = [
@@ -153,11 +159,11 @@
       "សួន សុវណ្ណារ៉ា", "ខ្លូត វណ្ណវិឆ័យ", "ទន់ វឌ្ឍនៈ", "ញ៉ែម សមបញ្ញា", "ភិន សុភី", "វ៉ុន វ៉ាន់នី", 
       "ហាស់ ស៊ីផាន់", "អ៊ាន ម៉ារ៉ាឌី", "ម៉ៅ តារា", "សារ៉ង សារៈសិន្ធុ", "យ៉ម ផល្លា", "ស៊ិច ពិសី", 
       "អុន សម្ភស្សសោភា", "ពេជ្រ ភីរម្យ", "ផាវ ផល", "វឿន គង់", "ហាន ផារី", "ឃឹម ប៊ុណ្ណា", 
-      "ហ៊ាន ពីណា", "អេង សូនី", "លេន បូនី", "សែត ហត្ថា", "និន ចំរើន", "កែ កិណ្ណារី", 
+      "ហៀន ពីណា", "អេង សុនី", "លេន បូនី", "សួម ហត្ថា", "និន ចំរើន", "កែ កិណ្ណារី", 
       "ពៅ សុខណា", "ប៉ែន វ៉ាន់ដា", "កៅ សាវុទ្ធី", "ធី សុធារៈ", "ឯម បូរ៉ា", "ខុង សាវ៉ាន់", 
       "ស៊ុម ចំរើន", "ឃិន ទុំ", "មួង រដ្ឋ", "គិន គីណារិន", "រី សាលឿន", "ផាវ ភី", 
-      "ម៉ម ផុសណាគ្រី", "តឹក ប៊ុនឡុង", "ទូច ស៊ីថាន", "សូ វិបុល", "ឈួម ស៊ិន", "សល់ ចាន់ចាវ", 
-      "អាង ច័ន្ទបរមី", "ហៃ សាវ៉ាន់", "លាប ចិត្រា", "តេង ច័ន្ទតារា", "គុជ រចនា", "អ៊ាន សុភ័ក្ដ", 
+      "ម៉ម ផុសណាគ្រី", "តឹក ប៊ុនឡុង", "ទូច ស៊ីថាន", "សូ វិបុល", "ឈួម ស៊ិន", "សល់ ច័ន្ទចាវ", 
+      "អាង ច័ន្ទបរមី", "ហៃ សាវ៉ាន់", "ហុង លីហេង","តេង ច័ន្ទតារា", "គុជ រចនា", "អ៊ាន សុភ័ក្ដ", 
       "ខៅ ស្រីនុច", "សុគុណ រ៉ូហ្សា", "ផាន់ ឡៃហ៊ាង", "ស៊ី សៀវអ៊ី", "រើន គឹមឡាង", "អ៊ឹម អ៊ីវន", 
       "ខុន ពុទ្ធិ", "ធំ តុលាការ", "ជួន ពិសិដ្ឋ", "យស រតនា", "ឌី ម៉ូនីន", "រ៉យ ឡាយ", 
       "អ៊ុក សារ៉ាវី", "សាន ធីណាន", "គុជ សោភា", "វ៉ិត ឆវី", "ប៉េង ហង្សដានេត", "សុន វណ្ឌី", "សាន់ ភារ៉េត", "អ៊ា សុទ្ធី"
@@ -189,6 +195,17 @@
     const khmerDigits = {'0':'០','1':'១','2':'២','3':'៣','4':'៤','5':'៥','6':'៦','7':'៧','8':'៨','9':'៩'};
     document.getElementById("current-month-year").innerText = `${currentMonth} ឆ្នាំ ${currentYear.toString().split('').map(d => khmerDigits[d] || d).join('')}`;
 
+    // ប្តូរអក្សរលើប៊ូតុងតាមឈ្មោះដែលបានជ្រើសរើស
+    function updateSubmitButtonText() {
+      const staffName = document.getElementById('staffNameInput').value.trim();
+      const submitBtn = document.getElementById('submitBtn');
+      if (exemptSelfieList.includes(staffName)) {
+        submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន";
+      } else {
+        submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន (Selfie)";
+      }
+    }
+
     function showDropdown() {
       renderDropdown(currentStaffList);
       document.getElementById('dropdownList').style.display = 'block';
@@ -199,6 +216,7 @@
       const filtered = currentStaffList.filter(name => name.toLowerCase().includes(keyword));
       renderDropdown(filtered);
       document.getElementById('dropdownList').style.display = 'block';
+      updateSubmitButtonText();
     }
 
     function renderDropdown(items) {
@@ -215,6 +233,7 @@
         item.onclick = function() {
           document.getElementById('staffNameInput').value = name;
           listDiv.style.display = 'none';
+          updateSubmitButtonText();
         };
         listDiv.appendChild(item);
       });
@@ -244,6 +263,7 @@
       
       // Clear the current inputs when switching tabs
       document.getElementById('staffNameInput').value = "";
+      updateSubmitButtonText();
       
       if (tabType === 'general') {
         document.getElementById('tab-general').classList.add('active');
@@ -303,6 +323,27 @@
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
 
+      // --- ប្រសិនបើឈ្មោះស្ថិតក្នុងបញ្ជីលើកលែង ផ្ញើទិន្នន័យភ្លាមដោយមិនបើកកាមេរ៉ា ---
+      if (exemptSelfieList.includes(staffName)) {
+        const targetSheet = document.getElementById('meetingType').value;
+        stopCameraStream();
+        document.getElementById('camera-preview-section').style.display = 'none';
+
+        sendDataToBackend({
+          staffName: staffName,
+          role: role,
+          building: building,
+          sheetName: targetSheet,
+          attendanceStatus: "បានចូលរួមប្រជុំ",
+          absence: "",
+          fileName: "",
+          fileData: "",
+          mimeType: ""
+        }, submitBtn, statusDiv);
+        return;
+      }
+
+      // --- បុគ្គលិកផ្សេងទៀត រក្សាមុខងារស្កេនមុខដដែល ---
       const previewContainer = document.getElementById('camera-preview-section');
       const videoElement = document.getElementById('cameraFeed');
       const instructionLabel = document.getElementById('blink-instruction');
@@ -449,24 +490,21 @@
       .then(response => response.json())
       .then(result => {
         if (result.success) {
-          // លុបអក្សរកំពុងបញ្ជូនចេញ
           statusDiv.innerText = "";
           
-          // បង្ហាញ Pop-up ជោគជ័យ
           Swal.fire({
             title: 'ជោគជ័យ!',
             text: 'ការចុះឈ្មោះវត្តមានរបស់អ្នកត្រូវបានកត់ត្រាចូលប្រព័ន្ធរួចរាល់។',
             icon: 'success',
             confirmButtonText: 'យល់ព្រម',
-            confirmButtonColor: '#28a745', // ពណ៌បៃតងដូចប៊ូតុង
-            allowOutsideClick: false // តម្រូវឲ្យចុចប៊ូតុងទើបបាត់ Pop-up
+            confirmButtonColor: '#28a745',
+            allowOutsideClick: false
           }).then((res) => {
             if (res.isConfirmed) {
-              // ធ្វើការ Reset និង Reload ក្រោយពេលអ្នកប្រើប្រាស់ចុច "យល់ព្រម"
               document.getElementById('attendanceForm').reset();
               document.getElementById('staffNameInput').value = "";
               submitBtn.disabled = false;
-              submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន (Selfie)";
+              updateSubmitButtonText();
               window.location.reload(); 
             }
           });
@@ -475,14 +513,14 @@
           statusDiv.innerText = "បរាជ័យ៖ " + (result.error || "មិនស្គាល់បញ្ហា");
           statusDiv.style.color = "red";
           submitBtn.disabled = false;
-          submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន (Selfie)";
+          updateSubmitButtonText();
         }
       })
       .catch((error) => {
         statusDiv.innerText = "បរាជ័យក្នុងការតភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ។ សូមសាកល្បងម្ដងទៀត!";
         statusDiv.style.color = "red";
         submitBtn.disabled = false; 
-        submitBtn.innerText = "បញ្ជូនទិន្នន័យវត្តមាន (Selfie)";
+        updateSubmitButtonText();
       });
     }
   </script>
